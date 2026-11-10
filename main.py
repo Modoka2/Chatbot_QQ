@@ -1,6 +1,7 @@
 """启动入口。
 
 用法：
+    python main.py --init               # 首次使用：从模板生成 .env / config.local.yaml
     python main.py                      # 读取 config.local.yaml / config.yaml
     python main.py --mock               # 不调真实模型，用于本地联调
     python main.py --port 9000
@@ -13,11 +14,43 @@ import logging
 import socket
 import sys
 import time
+from pathlib import Path
 
 from bot.config import AppConfig
 from bot.server import create_app
 
 log = logging.getLogger("bot")
+
+
+def _init_files(root: Path | None = None) -> int:
+    """从模板生成 .env 和 config.local.yaml（已存在的不覆盖）。"""
+    root = root or Path(__file__).resolve().parent
+    pairs = [(".env.example", ".env"), ("config.yaml", "config.local.yaml")]
+    created: list[str] = []
+    skipped: list[str] = []
+
+    for src_name, dst_name in pairs:
+        src, dst = root / src_name, root / dst_name
+        if dst.exists():
+            skipped.append(dst_name)
+            continue
+        if not src.exists():
+            print(f"[错误] 缺少模板文件：{src_name}", file=sys.stderr)
+            return 1
+        dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        created.append(dst_name)
+
+    print("已生成：" + ("、".join(created) if created else "无"))
+    if skipped:
+        print("已存在，未覆盖：" + "、".join(skipped))
+    print(
+        "\n接下来：\n"
+        "  1. 编辑 .env，填上 DEEPSEEK_API_KEY\n"
+        "  2. 编辑 config.local.yaml，把 123456789 换成你的 QQ 号（admin_ids / owner.ids）\n"
+        "  3. 验证 Key：python main.py --check --probe\n"
+        "  4. 启动：python main.py\n"
+    )
+    return 0
 
 
 def _lan_ip() -> str:
@@ -59,7 +92,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mock", action="store_true", help="强制使用 mock 模型（无需 API Key）")
     parser.add_argument("--check", action="store_true", help="只检查配置是否合法，然后退出")
     parser.add_argument("--probe", action="store_true", help="真实调用一次模型，验证 Key / 网络是否可用")
+    parser.add_argument("--init", action="store_true", help="首次使用：从模板生成 .env 和 config.local.yaml")
     args = parser.parse_args(argv)
+
+    if args.init:
+        return _init_files()
 
     try:
         config = AppConfig.load(args.config)

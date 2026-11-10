@@ -1,4 +1,4 @@
-# 微信 / QQ AI 聊天机器人
+﻿# 微信 / QQ AI 聊天机器人
 
 一个用 Python 写的聊天机器人，一套代码同时接入 **QQ** 和 **微信公众号**，背后可以是 DeepSeek、OpenAI、Kimi、通义千问、硅基流动，或者你本机的 Ollama。
 
@@ -70,26 +70,34 @@ C:\Chatbot
 ├── scripts/smoke.py           接口自检脚本
 ├── scripts/e2e_local.py       本地全链路联调（假模型 + 假 OneBot，不用 Key）
 ├── scripts/live_chat.py       命令行里用真实模型聊天（调人格 / 验记忆）
-└── tests/                     72 个单元 / 接口测试
+└── tests/                     141 个单元 / 接口测试
 ```
 
 ## 快速开始
 
-前提：Python 3.10+（本机已装 3.14，依赖 Flask / requests / pydantic / PyYAML 也都已就绪）。
+**这个仓库不含 QQ 客户端**。想让机器人连上 QQ，需要你自己装一个 OneBot v11 实现（推荐 [NapCat](https://napcat.napcat.wiki)），步骤见下面的「接入 QQ」。不装也能先跑通整条链路（`--mock` 模式）。
+
+### 克隆后 5 步
 
 ```powershell
-cd C:\Chatbot
+# 1. 装依赖（Python 3.10+）
+pip install -r requirements.txt
 
-# 1. 填密钥
-copy .env.example .env
-notepad .env            # 至少填 DEEPSEEK_API_KEY
+# 2. 生成个人配置（.env 和 config.local.yaml，已 gitignore）
+python main.py --init
 
-# 2. 先用假模型验证链路通不通（不花钱、不需要网络）
+# 3. 打开 .env，填 DEEPSEEK_API_KEY
+notepad .env
+
+# 4. 先用假模型验证链路（不花钱、不需要 Key）
 python main.py --mock
+#    另开一个窗口：python scripts/smoke.py http://127.0.0.1:8080
 
-# 3. 换成真实模型
+# 5. 改成真实模型
 python main.py
 ```
+
+`python main.py --init` 只做两件事：把 `.env.example` 复制成 `.env`、把模板 `config.yaml` 复制成 `config.local.yaml`（后者优先级更高，用来放你自己的 QQ 号和人设）。
 
 启动后浏览器打开 <http://127.0.0.1:8080> 能看到状态页，再跑一遍自检：
 
