@@ -1,8 +1,10 @@
-﻿# 微信 / QQ AI 聊天机器人
+# 微信 / QQ AI 聊天机器人
 
 一个用 Python 写的聊天机器人，一套代码同时接入 **QQ** 和 **微信公众号**，背后可以是 DeepSeek、OpenAI、Kimi、通义千问、硅基流动，或者你本机的 Ollama。
 
 带上下文记忆、群聊 @ 触发、防刷屏限流、白名单、签名校验，开箱即跑。
+
+> MIT License · 不含任何密钥与个人数据 · 141 项测试 + 36 项全链路自检
 
 ```
                 QQ 用户                              微信用户
@@ -52,8 +54,9 @@
 
 ```
 C:\Chatbot
-├── main.py                    启动入口（--mock / --port / --check）
-├── config.yaml                主配置：模型、开关、限流、白名单
+├── main.py                    启动入口（--init / --mock / --check / --probe）
+├── LICENSE                    MIT
+├── config.yaml                主配置模板（个人配置写 config.local.yaml）
 ├── .env.example               密钥模板（复制成 .env）
 ├── run.ps1 / run.bat          一键启动
 ├── requirements.txt
@@ -627,3 +630,14 @@ git push -u origin main
 - 知识库问答（RAG）：把群聊里的资料喂给模型
 - 管理后台：看会话、改人格、拉黑用户
 - Docker 化部署 + 开机自启
+
+## 许可证
+
+代码以 **MIT License** 发布，见 [LICENSE](LICENSE)：可以自由使用、修改、商用、再分发，保留版权声明即可。
+
+几点边界：
+
+- **表情包不随仓库分发**（`stickers/` 已在 `.gitignore`），那些是网友二创，版权归原作者
+- 「DeepSeek」「微信」「QQ」「NapCat」等名称与商标归各自所有者，本项目与它们没有隶属关系
+- 本项目是个人自托管工具，使用第三方客户端带来的账号风险请自行评估（见上面「合规与风险」）
+

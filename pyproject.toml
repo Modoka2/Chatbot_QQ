@@ -2,6 +2,7 @@
 name = "wxqq-ai-bot"
 version = "0.1.0"
 description = "可接入微信（公众号）与 QQ（OneBot v11）的 AI 聊天机器人"
+license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.0",
