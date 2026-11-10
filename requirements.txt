@@ -1,0 +1,5 @@
+# 本机 Anaconda 已自带这些包；换机器时 pip install -r requirements.txt 即可
+flask>=3.0
+requests>=2.31
+pydantic>=2.7
+pyyaml>=6.0
