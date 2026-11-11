@@ -347,3 +347,20 @@ def test_owner_saying_master_is_not_flagged(handler):
     assert "[注意]" not in handler.llm.calls[-1][0]["content"]
 
 
+# ------------------------------------------------------------------ 前情提要
+def test_summary_injected_into_prompt(handler):
+    key = "onebot11:private:10001"
+    handler.memory.append_turn(key, "我叫阿伟，做跨境电商", "记住了")
+    handler.memory.compact(key, keep=0, summarize=lambda p, c: "用户叫阿伟，做跨境电商", chunk=8)
+
+    handler.handle(msg("我叫什么来着"))
+    system = handler.llm.calls[-1][0]["content"]
+    assert "[前情提要]" in system
+    assert "阿伟" in system
+
+
+def test_no_summary_line_by_default(handler):
+    handler.handle(msg("你好"))
+    assert "[前情提要]" not in handler.llm.calls[-1][0]["content"]
+
+

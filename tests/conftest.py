@@ -21,7 +21,12 @@ BASE: dict[str, Any] = {
         "daily_token_budget": 0,
         "token_budget_notice": "额度用完了",
     },
-    "memory": {"path": ":memory:", "ttl_minutes": 0, "max_turns": 24},
+    "memory": {
+        "path": ":memory:",
+        "ttl_minutes": 0,
+        "max_turns": 24,
+        "summary": {"enabled": False},
+    },
     "reply": {
         "private_enabled": True,
         "group_enabled": True,

@@ -180,12 +180,23 @@ class OwnerConfig(_Model):
     """对其他人（非主人）的称呼。"""
 
 
+class SummaryConfig(_Model):
+    enabled: bool = True
+    model: str = ""
+    """压缩用的模型；留空复用 llm.model。"""
+    every_turns: int = 8
+    """一次最多压缩多少条旧消息。"""
+    max_chars: int = 160
+    """压缩后的「前情提要」最多多少字。"""
+
+
 class MemoryConfig(_Model):
     path: str = "data/bot.db"
     ttl_minutes: int = 180
     """会话闲置多久后自动遗忘，0 表示永不过期。"""
     max_turns: int = 24
-    """单会话保留的消息条数上限（滑窗）。"""
+    """单会话保留的原始消息条数上限，超出的会先被压缩成摘要。"""
+    summary: SummaryConfig = Field(default_factory=SummaryConfig)
 
 
 class OneBot11Config(_Model):

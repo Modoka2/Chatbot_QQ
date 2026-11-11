@@ -42,10 +42,82 @@ def test_ttl_expires_history(tmp_path):
 
 def test_clear_and_stats(memory):
     memory.append_turn("s", "a", "b")
-    assert memory.stats() == {"sessions": 1, "turns": 2}
+    assert memory.stats() == {"sessions": 1, "turns": 2, "summaries": 0}
     assert memory.clear("s") == 2
     assert memory.load("s") == []
-    assert memory.stats() == {"sessions": 0, "turns": 0}
+    assert memory.stats() == {"sessions": 0, "turns": 0, "summaries": 0}
+
+
+# ------------------------------------------------------------------ 摘要
+def test_append_keeps_all_rows(memory):
+    memory.max_turns = 4
+    for i in range(6):
+        memory.append("s", "user", f"消息{i}")
+    assert memory.count("s") == 6
+    assert len(memory.load("s")) == 4  # 读的时候仍然只给最近 4 条
+
+
+def test_compact_summarizes_oldest(memory):
+    memory.max_turns = 4
+    for i in range(6):
+        memory.append("s", "user", f"消息{i}")
+
+    calls = []
+
+    def fake(previous, chunk):
+        calls.append((previous, chunk))
+        return "用户和机器人聊过消息0到1"
+
+    removed = memory.compact("s", keep=4, summarize=fake, chunk=8)
+    assert removed == 2
+    assert memory.count("s") == 4
+    assert memory.get_summary("s") == "用户和机器人聊过消息0到1"
+    assert calls[0][0] == ""
+    assert "消息0" in calls[0][1]
+
+
+def test_compact_merges_previous_summary(memory):
+    for i in range(4):
+        memory.append("s", "user", f"旧{i}")
+
+    memory.compact("s", keep=0, summarize=lambda p, c: "第一版摘要", chunk=8)
+
+    for i in range(3):
+        memory.append("s", "user", f"新{i}")
+
+    seen = {}
+
+    def fake(previous, chunk):
+        seen["previous"] = previous
+        return "第二版摘要"
+
+    memory.compact("s", keep=0, summarize=fake, chunk=8)
+    assert seen["previous"] == "第一版摘要"
+    assert memory.get_summary("s") == "第二版摘要"
+
+
+def test_compact_keeps_previous_on_failure(memory):
+    for i in range(4):
+        memory.append("s", "user", f"旧{i}")
+    memory.compact("s", keep=0, summarize=lambda p, c: "原有摘要", chunk=8)
+
+    for i in range(2):
+        memory.append("s", "user", f"新{i}")
+
+    def boom(previous, chunk):
+        raise RuntimeError("模型挂了")
+
+    removed = memory.compact("s", keep=0, summarize=boom, chunk=8)
+    assert removed == 2  # 仍然裁剪，避免无限增长
+    assert memory.get_summary("s") == "原有摘要"
+
+
+def test_clear_removes_summary(memory):
+    memory.append("s", "user", "内容")
+    memory.compact("s", keep=0, summarize=lambda p, c: "摘要", chunk=8)
+    assert memory.get_summary("s") == "摘要"
+    memory.clear("s")
+    assert memory.get_summary("s") == ""
 
 
 def test_persists_across_reopen(tmp_path):

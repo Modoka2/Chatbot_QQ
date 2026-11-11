@@ -50,6 +50,11 @@ memory:
   path: data/bot.db
   ttl_minutes: 180         # 闲置多久后遗忘这次会话，0 = 永不过期
   max_turns: 24            # 每个会话保留的消息条数
+  summary:
+    enabled: true
+    every_turns: 8        # 一次最多压缩多少条旧消息
+    max_chars: 160        # 摘要最多多少字
+    model: ""             # 留空 = 用 llm.model
 
 # 识图：直接复用上面的 DeepSeek 配置（deepseek-chat 实测可以读图）
 vision:
