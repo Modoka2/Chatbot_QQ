@@ -89,6 +89,13 @@ search:
   tavily_key: ${TAVILY_API_KEY}
 
 # 好感度与心情：会累积、会变化，影响说话语气
+# 用户画像：跨会话记住「你是谁」，每聊 N 句整理一次
+profile:
+  enabled: true
+  every_turns: 6           # 每 6 句更新一次画像
+  max_chars: 200           # 画像字数上限
+  model: ""                # 留空 = 用 llm.model
+
 affinity:
   enabled: true
   initial: 50              # 陌生人初始好感度

@@ -25,7 +25,21 @@ def clock_store(tmp_path):
 
 def test_initial_values(store):
     assert store.get("qq:stranger").score == 50
-    assert store.get("qq:owner", is_owner=True).score == 70
+    assert store.get("qq:owner", is_owner=True).score == 80
+
+
+def test_owner_never_drops_below_80(store):
+    for _ in range(20):
+        store.touch("qq:owner", "废物，滚，讨厌你", is_owner=True)
+    rel = store.get("qq:owner", is_owner=True)
+    assert rel.score == 80
+    assert rel.mood < 0
+
+
+def test_guest_never_exceeds_80(store):
+    for _ in range(30):
+        store.touch("qq:guest", "谢谢你，你最可爱了，真贴心")
+    assert store.get("qq:guest").score == 80
 
 
 def test_positive_raises_score_and_mood(store):
@@ -53,7 +67,7 @@ def test_rushed_counts_as_negative(store):
 def test_score_is_clamped(store):
     for _ in range(60):
         store.touch("qq:100", "谢谢，你最棒了，真可爱")
-    assert store.get("qq:100").score <= 100
+    assert store.get("qq:100").score <= 80  # 非主人封顶 80
 
     for _ in range(80):
         store.touch("qq:200", "你这个废物，滚，讨厌")

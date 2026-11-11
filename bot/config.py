@@ -184,8 +184,12 @@ class AffinityConfig(_Model):
     enabled: bool = True
     initial: float = 50.0
     """陌生人初始好感度（0~100）。"""
-    owner_initial: float = 70.0
+    owner_initial: float = 80.0
     """主人初始好感度。"""
+    owner_floor: float = 80.0
+    """主人的好感度下限：怎么惹都不会低于这个数。"""
+    guest_ceil: float = 80.0
+    """其他人的好感度上限：再熟也到不了主人那一档。"""
     per_message: float = 0.2
     """每聊一句的微弱加成。"""
     positive_step: float = 1.5
@@ -195,6 +199,16 @@ class AffinityConfig(_Model):
     """一天不聊，好感度回落到 50 的速度。"""
     mood_half_life_hours: float = 3.0
     """心情衰减半衰期：3 小时后情绪减半。"""
+
+
+class ProfileConfig(_Model):
+    enabled: bool = True
+    every_turns: int = 6
+    """每聊几句更新一次画像。"""
+    max_chars: int = 200
+    """画像字数上限。"""
+    model: str = ""
+    """提取用的模型；留空复用 llm.model。"""
 
 
 class SummaryConfig(_Model):
@@ -253,6 +267,7 @@ class AppConfig(_Model):
     sticker: StickerConfig = Field(default_factory=StickerConfig)
     search: SearchConfig = Field(default_factory=SearchConfig)
     affinity: AffinityConfig = Field(default_factory=AffinityConfig)
+    profile: ProfileConfig = Field(default_factory=ProfileConfig)
     onebot11: OneBot11Config = Field(default_factory=OneBot11Config)
     wechat_mp: WeChatMPConfig = Field(default_factory=WeChatMPConfig)
 

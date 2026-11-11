@@ -103,13 +103,21 @@ class AffinityStore:
                 "SELECT * FROM affinity WHERE user_key = ?", (user_key,)
             ).fetchone()
 
+    def _clamp(self, score: float, is_owner: bool) -> float:
+        """主人有下限，其他人有上限——关系档次不一样。"""
+        if is_owner:
+            return min(100.0, max(self.config.owner_floor, score))
+        return min(self.config.guest_ceil, max(0.0, score))
+
     def get(self, user_key: str, is_owner: bool = False) -> Relation:
         """读取关系状态，并顺手做时间衰减。"""
         row = self._row(user_key)
         now = self._clock()
         if row is None:
             relation = Relation(
-                score=self.config.owner_initial if is_owner else self.config.initial,
+                score=self._clamp(
+                    self.config.owner_initial if is_owner else self.config.initial, is_owner
+                ),
                 mood=0.0,
                 interactions=0,
             )
@@ -123,7 +131,7 @@ class AffinityStore:
             last_reason=str(row["last_reason"]),
         )
         hours = max(0.0, (now - float(row["updated_at"])) / 3600)
-        if hours > 0:
+        if hours >= 0.05:  # 3 分钟内的微小间隔不做衰减，避免浮点误差
             # 好感度慢慢回落到 50
             drift = self.config.daily_decay * (hours / 24)
             if relation.score > 50:
@@ -134,6 +142,7 @@ class AffinityStore:
             relation.mood *= 0.5 ** (hours / max(0.1, self.config.mood_half_life_hours))
             if abs(relation.mood) < 0.01:
                 relation.mood = 0.0
+        relation.score = self._clamp(relation.score, is_owner)
         return relation
 
     # ---------------------------------------------------------------- 写入
@@ -186,7 +195,7 @@ class AffinityStore:
         relation = self.get(user_key, is_owner)
         delta, mood_delta, reason = self.detect(text)
 
-        relation.score = min(100.0, max(0.0, relation.score + self.config.per_message + delta))
+        relation.score = self._clamp(relation.score + self.config.per_message + delta, is_owner)
         relation.mood = min(1.0, max(-1.0, relation.mood + mood_delta))
         relation.interactions += 1
         if reason:
