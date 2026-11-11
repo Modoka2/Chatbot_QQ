@@ -62,6 +62,7 @@ def _is_loopback(host: str) -> bool:
 
 def load_image(ref: str, max_mb: float = 8.0, timeout: float = 20.0) -> tuple[bytes, str]:
     """读取一张图片，返回 (原始字节, mime)。失败抛 :class:`ImageError`。"""
+    ref = str(ref or "").strip()
     limit = int(max_mb * 1024 * 1024)
 
     if not ref:

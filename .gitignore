@@ -20,6 +20,7 @@ stickers/*.jpg
 stickers/*.jpeg
 stickers/*.gif
 stickers/*.webp
+stickers/tags.json
 
 # ---- Python / 编辑器 / 系统 ----
 __pycache__/

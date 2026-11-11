@@ -70,9 +70,14 @@ def main(argv: list[str] | None = None) -> int:
 
     def ask(text: str) -> None:
         started = time.time()
-        reply = handler.handle(build(text))
+        out = handler.reply(build(text))
         elapsed = time.time() - started
-        print(f"{'AI' if interactive else ''} > {reply or '（保持沉默）'}   [{elapsed:.1f}s]")
+        body = out.text if out else "（保持沉默）"
+        print(f"{'AI' if interactive else ''} > {body or '（只发了附件）'}   [{elapsed:.1f}s]")
+        if out and out.sticker:
+            print(f"  [表情包] {Path(out.sticker).name}")
+        if out and out.voice:
+            print(f"  [语音] {Path(out.voice).name}")
 
     try:
         if not interactive:

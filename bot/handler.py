@@ -37,6 +37,7 @@ from .vision import ImageError, load_image, to_data_uri
 log = logging.getLogger(__name__)
 
 _MEDIA_PLACEHOLDERS = re.compile(r"\[(?:图片|表情|语音|视频|文件|卡片)\]")
+_STICKER_MARKER = re.compile(r"[\[【]{1,2}\s*表情\s*[:：]\s*([^\]】\n]{1,10}?)\s*[\]】]{1,2}")
 
 _INJECTION_PATTERNS = [
     r"忽略(之前|以上|前面|所有|你)的?(指令|设定|提示|规则)",
@@ -268,8 +269,8 @@ class ChatHandler:
         if text is None:
             return None
 
-        sticker = ""
-        if self._should_attach_sticker(msg) and self._rng.random() < self.config.sticker.probability:
+        text, sticker = self._extract_sticker(text)
+        if not sticker and self._should_attach_sticker(msg) and self._rng.random() < self.config.sticker.probability:
             picked = self.stickers_box().random(self._rng)
             if picked:
                 sticker = str(picked)
@@ -447,6 +448,7 @@ class ChatHandler:
             self._relation_line(msg),
             self._profile_line(msg),
             self._summary_line(msg),
+            self._sticker_line(),
             self._injection_warning(text),
         ]
         return "\n\n".join(p for p in parts if p)
@@ -638,6 +640,48 @@ class ChatHandler:
         if not cfg.enabled or cfg.probability <= 0:
             return False
         return cfg.group_enabled if msg.chat_type == "group" else cfg.private_enabled
+
+    def _extract_sticker(self, text: str) -> tuple[str, str]:
+        """解析模型写的 [[表情:标签]]，返回 (去掉标记的文本, 表情包路径)。"""
+        match = _STICKER_MARKER.search(text or "")
+        if not match:
+            return text, ""
+        tag = match.group(1).strip()
+        cleaned = _STICKER_MARKER.sub("", text).strip()
+
+        if not self.config.sticker.enabled:
+            return cleaned, ""
+
+        box = self.stickers_box()
+        picked = box.random_for_tag(tag, self._rng)
+        if picked is None:
+            # 标签没完全对上，试一下包含关系（「很委屈」-> 委屈）
+            for known in box.all_tags():
+                if known in tag or tag in known:
+                    picked = box.random_for_tag(known, self._rng)
+                    if picked:
+                        break
+        if picked:
+            log.info("按标签发图：%s -> %s", tag, picked.name)
+            return cleaned, str(picked)
+        log.info("标签没有匹配的表情包：%s", tag)
+        return cleaned, ""
+
+    def _sticker_line(self) -> str:
+        """把可用标签告诉模型，让它自己挑。"""
+        if not self.config.sticker.enabled:
+            return ""
+        try:
+            tags = self.stickers_box().all_tags()
+        except Exception:
+            log.exception("读取表情包标签失败")
+            return ""
+        if not tags:
+            return ""
+        return (
+            "[表情包] 合适的时候可以在回复末尾加 [[表情:标签]] 发一张表情包，"
+            f"可用标签：{'、'.join(tags)}。一条回复最多一张，不用每条都发。"
+        )
 
     # ---------------------------------------------------------------- 联网搜索
     def search_client(self) -> SearchClient:
