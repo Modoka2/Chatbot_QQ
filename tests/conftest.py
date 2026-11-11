@@ -87,6 +87,7 @@ BASE: dict[str, Any] = {
     },
     "affinity": {"enabled": True},
     "profile": {"enabled": False},
+    "tts": {"enabled": False},
     "onebot11": {"enabled": True, "async_reply": False},
     "wechat_mp": {"enabled": True, "token": "test-token", "reply_timeout": 2},
 }

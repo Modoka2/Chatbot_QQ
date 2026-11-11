@@ -222,6 +222,36 @@ class OneBot11Client:
             [{"type": "image", "data": {"file": "base64://" + base64.b64encode(raw).decode()}}],
         )
 
+    def send_voice(self, msg: Message, path: str) -> bool:
+        """发送语音（record）。先试 file://，失败退 base64。"""
+        if not path:
+            log.error("语音路径为空")
+            return False
+        try:
+            p = Path(path).resolve()
+        except (OSError, ValueError) as exc:
+            log.error("语音路径无效：%s（%s）", path, exc)
+            return False
+        if not p.is_file():
+            log.error("语音文件不存在：%s", p)
+            return False
+
+        if self._send(msg, [{"type": "record", "data": {"file": p.as_uri()}}]):
+            return True
+
+        try:
+            raw = p.read_bytes()
+        except OSError as exc:
+            log.error("读取语音失败：%s", exc)
+            return False
+        if len(raw) > 4 * 1024 * 1024:
+            return False
+        log.info("语音 file:// 发送失败，改用 base64 重试：%s", p.name)
+        return self._send(
+            msg,
+            [{"type": "record", "data": {"file": "base64://" + base64.b64encode(raw).decode()}}],
+        )
+
     def _send(self, msg: Message, segments: list[dict[str, Any]]) -> bool:
         """按会话类型发送消息段，返回是否成功。"""
         if msg.chat_type == "group":

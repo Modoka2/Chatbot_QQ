@@ -31,6 +31,7 @@ from .profile import ProfileExtractor, ProfileStore
 from .search import SearchClient, SearchResult
 from .stickers import StickerBox
 from .summarize import Summarizer
+from .tts import TTSClient
 from .vision import ImageError, load_image, to_data_uri
 
 log = logging.getLogger(__name__)
@@ -241,6 +242,7 @@ class ChatHandler:
         self._profile_seen: dict[str, int] = defaultdict(int)
         self._profile_busy: set[str] = set()
         self._profile_lock = threading.Lock()
+        self._tts: TTSClient | None = None
         self._vision: LLMClient | None = None
         self._stickers: StickerBox | None = None
         self._search_client: SearchClient | None = None
@@ -272,7 +274,49 @@ class ChatHandler:
             if picked:
                 sticker = str(picked)
                 log.info("顺带一张表情包：%s", picked.name)
-        return Reply(text=text, sticker=sticker)
+
+        voice = self._speak(text) if self._should_speak(msg, text) else ""
+        return Reply(text=text, sticker=sticker, voice=voice)
+
+    # ---------------------------------------------------------------- 语音
+    def tts(self) -> TTSClient:
+        if self._tts is None:
+            self._tts = TTSClient(self.config.tts)
+        return self._tts
+
+    def _voice_trigger(self, msg: Message) -> bool:
+        cfg = self.config.tts
+        if not cfg.enabled or msg.images:
+            return False
+        text = (msg.text or "").strip()
+        if not text or not any(k and k in text for k in cfg.trigger_keywords):
+            return False
+        return self._reply_eligible(msg)
+
+    def _should_speak(self, msg: Message, text: str) -> bool:
+        cfg = self.config.tts
+        if not cfg.enabled or not text:
+            return False
+        if len(text) > cfg.max_chars:
+            return False
+        if "```" in text:  # 代码念出来没意义
+            return False
+        if self._voice_trigger(msg):
+            return True
+        return cfg.probability > 0 and self._rng.random() < cfg.probability
+
+    def _speak(self, text: str) -> str:
+        try:
+            path = self.tts().synthesize(text)
+            log.info("语音已生成：%s", path.name)
+            try:
+                self.tts().cleanup()
+            except Exception:
+                pass
+            return str(path)
+        except Exception as exc:
+            log.warning("语音合成失败：%s", exc)
+            return ""
 
     def handle(self, msg: Message) -> str | None:
         """返回要发出去的文本；None 表示保持沉默。"""

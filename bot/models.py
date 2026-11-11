@@ -56,11 +56,13 @@ class Message:
 
 @dataclass(slots=True)
 class Reply:
-    """机器人要发出去的东西：一段文字，可选再带一张表情包。"""
+    """机器人要发出去的东西：一段文字，可选带一张表情包、一条语音。"""
 
     text: str = ""
     sticker: str = ""
     """表情包本地路径；空表示不发图。"""
+    voice: str = ""
+    """语音文件本地路径；空表示不发语音。"""
 
     def is_empty(self) -> bool:
-        return not self.text and not self.sticker
+        return not self.text and not self.sticker and not self.voice

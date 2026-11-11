@@ -173,6 +173,8 @@ def create_app(config: AppConfig | None = None) -> Flask:
                     onebot.send_text(msg, out.text)
                 if out.sticker:
                     onebot.send_image(msg, out.sticker)
+                if out.voice:
+                    onebot.send_voice(msg, out.voice)
             except Exception:  # 后台线程里的异常绝不能吞掉日志
                 log.exception("处理 QQ 消息失败")
 

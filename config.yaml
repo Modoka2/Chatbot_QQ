@@ -90,6 +90,17 @@ search:
 
 # 好感度与心情：会累积、会变化，影响说话语气
 # 用户画像：跨会话记住「你是谁」，每聊 N 句整理一次
+# 语音回复（TTS）：说「用语音说」就转语音发出来
+tts:
+  enabled: true
+  engine: edge             # edge = 在线微软语音（自然）；sapi = Windows 离线语音
+  voice: zh-CN-XiaoxiaoNeural
+  rate: "+0%"
+  dir: data/tts
+  max_chars: 80            # 超过这个长度就不转语音
+  probability: 0           # 普通回复转语音的概率，0 = 只在索要时
+  trigger_keywords: ["语音", "说句话", "用语音", "念出来", "发条语音", "读出来"]
+
 profile:
   enabled: true
   every_turns: 6           # 每 6 句更新一次画像

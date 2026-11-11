@@ -201,6 +201,22 @@ class AffinityConfig(_Model):
     """心情衰减半衰期：3 小时后情绪减半。"""
 
 
+class TTSConfig(_Model):
+    enabled: bool = True
+    engine: str = "edge"
+    """edge = 在线微软语音（自然）；sapi = Windows 离线语音。"""
+    voice: str = "zh-CN-XiaoxiaoNeural"
+    rate: str = "+0%"
+    dir: str = "data/tts"
+    max_chars: int = 80
+    """超过这个长度就不转语音（语音太长没人听）。"""
+    probability: float = 0.0
+    """普通回复转语音的概率，0 = 只在明确索要时。"""
+    trigger_keywords: list[str] = Field(
+        default_factory=lambda: ["语音", "说句话", "用语音", "念出来", "发条语音", "读出来"]
+    )
+
+
 class ProfileConfig(_Model):
     enabled: bool = True
     every_turns: int = 6
@@ -268,6 +284,7 @@ class AppConfig(_Model):
     search: SearchConfig = Field(default_factory=SearchConfig)
     affinity: AffinityConfig = Field(default_factory=AffinityConfig)
     profile: ProfileConfig = Field(default_factory=ProfileConfig)
+    tts: TTSConfig = Field(default_factory=TTSConfig)
     onebot11: OneBot11Config = Field(default_factory=OneBot11Config)
     wechat_mp: WeChatMPConfig = Field(default_factory=WeChatMPConfig)
 

@@ -3,3 +3,4 @@ flask>=3.0
 requests>=2.31
 pydantic>=2.7
 pyyaml>=6.0
+edge-tts>=7.0          # 语音回复（TTS），可选；不装则自动回退到 Windows 系统语音

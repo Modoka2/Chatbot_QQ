@@ -4,7 +4,7 @@
 
 带上下文记忆、群聊 @ 触发、防刷屏限流、白名单、签名校验，开箱即跑。
 
-> MIT License · 不含任何密钥与个人数据 · 179 项测试 + 36 项全链路自检
+> MIT License · 不含任何密钥与个人数据 · 191 项测试 + 36 项全链路自检
 
 ```
                 QQ 用户                              微信用户
@@ -47,6 +47,7 @@
 | 联网搜索 | 说「搜一下 xxx」或发 `/搜索 xxx`，先查再答并标来源 |
 | 好感度 | 会记住你们的关系：被夸涨、被骂掉、久不聊会淡，影响语气 |
 | 用户画像 | 跨会话记住「你是谁」：职业、宠物、生日、偏好 |
+| 语音回复 | 说「用语音说」就把回复转成语音条发出来 |
 | 指令 | `/help`、`/reset`、`/id`；管理员另有 `/status`、`/pause`、`/resume` |
 | 签名校验 | OneBot 的 `X-Signature`、公众号的 `sha1` 签名都做了验证 |
 | 去重 | QQ 端超时重推的事件不会重复回复 |
@@ -561,6 +562,44 @@ memory:
 > 注意这是「提醒」而不是「硬拦截」：机器人仍然用角色口吻回应，拒绝得比较自然，不会弹出冷冰冰的“我无法协助”。
 
 
+## 语音回复（TTS）
+
+说「用语音说」「念出来」「发条语音」时，机器人会把回复合成为语音发出来，QQ 里显示成语音条：
+
+```
+你：用语音说句晚安
+她：晚安主人～快去睡吧，别再熬啦…     ← 文字
+     [语音 8s]                        ← 同内容语音
+```
+
+两个引擎：
+
+| engine | 说明 | 依赖 |
+| --- | --- | --- |
+| `edge`（默认） | 微软 Edge 在线语音，中文自然（Xiaoxiao / Yunxi 等） | `pip install edge-tts` + 联网 |
+| `sapi` | Windows 自带离线语音（Huihui） | 不用联网，音质一般 |
+
+edge 失败会自动回退 sapi；两个都失败就只发文字，不影响聊天。
+
+```yaml
+tts:
+  enabled: true
+  engine: edge
+  voice: zh-CN-XiaoxiaoNeural
+  rate: "+0%"
+  dir: data/tts
+  max_chars: 80            # 太长的回复不转语音
+  probability: 0           # 0 = 只在索要时；0.2 = 两成回复带语音
+  trigger_keywords: ["语音", "说句话", "用语音", "念出来", "发条语音", "读出来"]
+```
+
+细节：
+
+- 回复里带 ``` 代码块时跳过——念代码没有意义
+- 音频放 `data/tts/`，每次合成后顺手清掉 10 分钟前的旧文件
+- 发送用 OneBot 的 `record` 消息段，NapCat 会用自带 ffmpeg 转成 silk（实测一条 8 秒语音正常送达）
+- 公众号被动回复只能发文字，语音这部分会跳过
+
 ## 联网搜索
 
 DeepSeek 的 **API 没有内置联网**（官网和 App 里的「联网搜索」是产品功能，不对外开放），所以这一步是机器人自己查、再把资料喂给模型。
@@ -640,6 +679,9 @@ search:
 | `affinity.guest_ceil` | 80 | 其他人好感度上限 |
 | `profile.enabled` | true | 是否启用用户画像 |
 | `profile.every_turns` | 6 | 每聊几句更新一次画像 |
+| `tts.enabled` | true | 是否启用语音回复 |
+| `tts.engine` | edge | 语音引擎（edge / sapi） |
+| `tts.max_chars` | 80 | 超过多少字就不转语音 |
 | `reply.max_reply_chars` | 900 | 回复超长截断，防刷屏 |
 | `reply.max_input_chars` | 500 | 输入超长截断，防有人贴长文烧 token |
 | `reply.rate_limit.per_user_per_minute` | 8 | 每人每分钟最多几次 |
