@@ -204,8 +204,8 @@ class AffinityConfig(_Model):
 class TTSConfig(_Model):
     enabled: bool = True
     engine: str = "edge"
-    """edge = 在线微软语音（自然）；sapi = Windows 离线语音。"""
-    voice: str = "zh-CN-XiaoxiaoNeural"
+    """edge = 在线微软语音；sapi = Windows 离线语音；openai = OpenAI 兼容 /audio/speech。"""
+    voice: str = "zh-CN-XiaoyiNeural"
     rate: str = "+0%"
     dir: str = "data/tts"
     max_chars: int = 80
@@ -215,6 +215,11 @@ class TTSConfig(_Model):
     trigger_keywords: list[str] = Field(
         default_factory=lambda: ["语音", "说句话", "用语音", "念出来", "发条语音", "读出来"]
     )
+    # ---- engine: openai 用（OpenAI / 硅基流动 / 自建 GPT-SoVITS 网关等）----
+    base_url: str = ""
+    api_key: str = ""
+    model: str = "gpt-4o-mini-tts"
+    response_format: str = "mp3"
 
 
 class ProfileConfig(_Model):

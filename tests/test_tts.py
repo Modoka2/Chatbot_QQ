@@ -166,3 +166,64 @@ def test_send_voice_falls_back_to_base64(tmp_path):
     assert client.send_voice(m, str(p)) is True
     second = session.calls[1][1]["json"]["message"][0]
     assert second["data"]["file"].startswith("base64://")
+
+
+# ------------------------------------------------------------------ OpenAI 兼容引擎
+class FakeHTTP:
+    def __init__(self, content: bytes = b"x" * 4096, status: int = 200, text: str = "err"):
+        self.content = content
+        self.status_code = status
+        self.text = text
+        self.calls: list[tuple] = []
+
+    def post(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return self
+
+
+def make_openai_client(tmp_path, **overrides):
+    cfg = build_config(tts={"enabled": True, "dir": str(tmp_path / "tts"), "engine": "openai", **overrides})
+    http = FakeHTTP()
+    return TTSClient(cfg.tts, session=http), http
+
+
+def test_openai_engine_success(tmp_path):
+    client, http = make_openai_client(
+        tmp_path, base_url="https://api.example.com/v1", api_key="k-1", voice="nova"
+    )
+    path = client.synthesize("你好呀")
+    assert path.exists() and path.suffix == ".mp3"
+
+    url, kwargs = http.calls[0]
+    assert url == "https://api.example.com/v1/audio/speech"
+    assert kwargs["json"]["voice"] == "nova"
+    assert kwargs["json"]["input"] == "你好呀"
+    assert kwargs["headers"]["Authorization"] == "Bearer k-1"
+
+
+def test_openai_requires_base_url(tmp_path):
+    client, _ = make_openai_client(tmp_path)
+    with pytest.raises(TTSError):
+        client._openai("你好")
+
+
+def test_openai_http_error(tmp_path):
+    cfg = build_config(tts={"enabled": True, "dir": str(tmp_path / "tts"), "engine": "openai",
+                            "base_url": "https://api.example.com/v1"})
+    client = TTSClient(cfg.tts, session=FakeHTTP(status=401, text="bad key"))
+    with pytest.raises(TTSError):
+        client._openai("你好")
+
+
+def test_online_engine_falls_back_to_sapi(tmp_path, monkeypatch):
+    cfg = build_config(tts={"enabled": True, "dir": str(tmp_path / "tts"), "engine": "edge"})
+    client = TTSClient(cfg.tts)
+
+    def boom(text):
+        raise RuntimeError("网络挂了")
+
+    fallback = tmp_path / "fallback.wav"
+    fallback.write_bytes(b"x" * 2048)
+    monkeypatch.setattr(client, "_edge", boom)
+    monkeypatch.setattr(client, "_sapi", lambda text: fallback)
+    assert client.synthesize("你好") == fallback

@@ -100,6 +100,11 @@ tts:
   max_chars: 80            # 超过这个长度就不转语音
   probability: 0           # 普通回复转语音的概率，0 = 只在索要时
   trigger_keywords: ["语音", "说句话", "用语音", "念出来", "发条语音", "读出来"]
+  # engine: openai 时必填（OpenAI / 硅基流动 / 自建 GPT-SoVITS 网关）
+  base_url: ""             # 例如 https://api.openai.com/v1
+  api_key: ${OPENAI_TTS_KEY}
+  model: gpt-4o-mini-tts
+  response_format: mp3
 
 profile:
   enabled: true

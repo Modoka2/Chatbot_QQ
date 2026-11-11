@@ -18,6 +18,8 @@ import time
 import uuid
 from pathlib import Path
 
+import requests
+
 from .config import TTSConfig
 
 log = logging.getLogger(__name__)
@@ -28,10 +30,12 @@ class TTSError(RuntimeError):
 
 
 class TTSClient:
-    def __init__(self, config: TTSConfig) -> None:
+    def __init__(self, config: TTSConfig, session=None) -> None:
         self.config = config
         self.dir = Path(config.dir)
         self.dir.mkdir(parents=True, exist_ok=True)
+        self._session = session
+        self._http = session or requests.Session()
 
     # ---------------------------------------------------------------- 对外
     def synthesize(self, text: str) -> Path:
@@ -43,12 +47,19 @@ class TTSClient:
             text = text[: self.config.max_chars * 2]
 
         engine = (self.config.engine or "edge").lower()
-        if engine == "sapi":
-            return self._sapi(text)
+        handlers = {
+            "sapi": self._sapi,
+            "edge": self._edge,
+            "openai": self._openai,
+        }
+        handler = handlers.get(engine, self._edge)
         try:
-            return self._edge(text)
+            return handler(text)
         except Exception as exc:
-            log.warning("edge-tts 失败，回退到系统语音：%s", exc)
+            log.warning("%s 合成失败：%s", engine, exc)
+            if engine == "sapi":
+                raise TTSError(str(exc)) from exc
+            # 在线引擎挂了就退回 Windows 离线语音
             return self._sapi(text)
 
     # ---------------------------------------------------------------- edge
@@ -69,6 +80,35 @@ class TTSClient:
         asyncio.run(run())
         if not out.exists() or out.stat().st_size < 1024:
             raise TTSError("edge-tts 没有生成有效文件")
+        return out
+
+    # ---------------------------------------------------------------- OpenAI 兼容
+    def _openai(self, text: str) -> Path:
+        """调用 OpenAI 协议的 /audio/speech；硅基流动、自建 GPT-SoVITS 网关都吃这套。"""
+        cfg = self.config
+        if not cfg.base_url:
+            raise TTSError("openai 引擎需要配置 tts.base_url")
+        url = cfg.base_url.rstrip("/") + "/audio/speech"
+        payload = {
+            "model": cfg.model or "gpt-4o-mini-tts",
+            "input": text,
+            "voice": cfg.voice or "alloy",
+            "response_format": cfg.response_format or "mp3",
+        }
+        headers = {"Content-Type": "application/json"}
+        if cfg.api_key:
+            headers["Authorization"] = f"Bearer {cfg.api_key}"
+
+        resp = self._http.post(url, json=payload, headers=headers, timeout=60)
+        if resp.status_code != 200:
+            raise TTSError(f"TTS 接口返回 HTTP {resp.status_code}: {resp.text[:200]}")
+        data = resp.content
+        if len(data) < 1024:
+            raise TTSError("TTS 接口返回内容过短")
+
+        ext = "wav" if (cfg.response_format or "").lower() == "wav" else "mp3"
+        out = self.dir / f"{uuid.uuid4().hex}.{ext}"
+        out.write_bytes(data)
         return out
 
     # ---------------------------------------------------------------- sapi

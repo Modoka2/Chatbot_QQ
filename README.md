@@ -601,6 +601,38 @@ python scripts/voice_samples.py "换句你自己想听的话"  # 自定义试听
 
 挑好后改 `config.local.yaml` 的 `tts.voice`，重启生效。语速用 `tts.rate` 调：`+10%` 更活泼，`-10%` 更慵懒。
 
+### 更多 TTS 方案
+
+`tts.engine` 可以在三种引擎间切换：
+
+| engine | 音色 | 费用 | 依赖 | 适合 |
+| --- | --- | --- | --- | --- |
+| `edge`（默认） | 14 个中文（多语种更多） | 免费 | 联网 + `edge-tts` | 日常够用，自然 |
+| `sapi` | 系统自带（默认 Huihui） | 免费离线 | 无 | 断网兜底 |
+| `openai` | 由服务商决定 | 按量 | `base_url` + `api_key` | 接 OpenAI / 硅基流动 / 自建 GPT-SoVITS |
+
+`openai` 走标准的 `/v1/audio/speech`，所以这些都能直接接：
+
+| 服务 | base_url 示例 | 说明 |
+| --- | --- | --- |
+| OpenAI | `https://api.openai.com/v1` | alloy / nova / shimmer 等，可指令控制语气 |
+| 硅基流动 | `https://api.siliconflow.cn/v1` | 有免费的 CosyVoice 音色 |
+| 自建 GPT-SoVITS | `http://127.0.0.1:9880/v1` | 可克隆任意音色，需要自己起服务 |
+| 自建 CosyVoice / Fish Speech | 各自的 OpenAI 兼容网关 | 同上 |
+
+```yaml
+tts:
+  engine: openai
+  base_url: https://api.siliconflow.cn/v1
+  api_key: ${OPENAI_TTS_KEY}
+  model: FunAudioLLM/CosyVoice2-0.5B
+  voice: FunAudioLLM/CosyVoice2-0.5B:alex
+```
+
+再往上还有本地神经 TTS（GPT-SoVITS、Fish Speech、ChatTTS、sherpa-onnx），效果更好但要 GPU 或几百 MB 模型，属于另一个量级。
+
+> 在线引擎失败都会自动回退到 Windows 离线语音，TTS 挂掉不会影响聊天。
+
 ```yaml
 tts:
   enabled: true
