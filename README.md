@@ -1,4 +1,4 @@
-﻿# 微信 / QQ AI 聊天机器人
+# 微信 / QQ AI 聊天机器人
 
 一个用 Python 写的聊天机器人，一套代码同时接入 **QQ** 和 **微信公众号**，背后可以是 DeepSeek、OpenAI、Kimi、通义千问、硅基流动，或者你本机的 Ollama。
 
@@ -580,6 +580,26 @@ memory:
 | `sapi` | Windows 自带离线语音（Huihui） | 不用联网，音质一般 |
 
 edge 失败会自动回退 sapi；两个都失败就只发文字，不影响聊天。
+
+### 挑音色
+
+```powershell
+python scripts/voice_samples.py                     # 默认句子生成试听包
+python scripts/voice_samples.py "换句你自己想听的话"  # 自定义试听文本
+```
+
+会在 `data/voice_samples/` 生成 14 个中文音色的 mp3 和一个 `index.html`，双击 html 挨个听。
+
+| 音色 | 特点 |
+| --- | --- |
+| `zh-CN-XiaoxiaoNeural` | 女声，温柔自然，最像日常聊天 |
+| `zh-CN-XiaoyiNeural` | 女声，更年轻、更俏皮（**当前默认**，更贴小莫的人设） |
+| `zh-CN-YunxiNeural` | 男声，清亮、有少年感 |
+| `zh-CN-YunjianNeural` / `YunyangNeural` | 男声，低沉解说 / 播音腔 |
+| `zh-CN-liaoning-XiaobeiNeural` | 东北腔，很有梗 |
+| `zh-TW-HsiaoChenNeural` / `zh-HK-HiuMaanNeural` | 台湾腔 / 粤语 |
+
+挑好后改 `config.local.yaml` 的 `tts.voice`，重启生效。语速用 `tts.rate` 调：`+10%` 更活泼，`-10%` 更慵懒。
 
 ```yaml
 tts:
