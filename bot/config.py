@@ -180,6 +180,23 @@ class OwnerConfig(_Model):
     """对其他人（非主人）的称呼。"""
 
 
+class AffinityConfig(_Model):
+    enabled: bool = True
+    initial: float = 50.0
+    """陌生人初始好感度（0~100）。"""
+    owner_initial: float = 70.0
+    """主人初始好感度。"""
+    per_message: float = 0.2
+    """每聊一句的微弱加成。"""
+    positive_step: float = 1.5
+    negative_step: float = 3.0
+    """被骂一次掉的分数（比被夸涨得快，更真实）。"""
+    daily_decay: float = 1.0
+    """一天不聊，好感度回落到 50 的速度。"""
+    mood_half_life_hours: float = 3.0
+    """心情衰减半衰期：3 小时后情绪减半。"""
+
+
 class SummaryConfig(_Model):
     enabled: bool = True
     model: str = ""
@@ -235,6 +252,7 @@ class AppConfig(_Model):
     vision: VisionConfig = Field(default_factory=VisionConfig)
     sticker: StickerConfig = Field(default_factory=StickerConfig)
     search: SearchConfig = Field(default_factory=SearchConfig)
+    affinity: AffinityConfig = Field(default_factory=AffinityConfig)
     onebot11: OneBot11Config = Field(default_factory=OneBot11Config)
     wechat_mp: WeChatMPConfig = Field(default_factory=WeChatMPConfig)
 

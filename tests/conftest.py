@@ -85,6 +85,7 @@ BASE: dict[str, Any] = {
         "searxng_url": "",
         "tavily_key": "",
     },
+    "affinity": {"enabled": True},
     "onebot11": {"enabled": True, "async_reply": False},
     "wechat_mp": {"enabled": True, "token": "test-token", "reply_timeout": 2},
 }

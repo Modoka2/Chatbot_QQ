@@ -88,6 +88,17 @@ search:
   searxng_url: ""          # 自建 SearXNG 时填，例如 http://127.0.0.1:8088
   tavily_key: ${TAVILY_API_KEY}
 
+# 好感度与心情：会累积、会变化，影响说话语气
+affinity:
+  enabled: true
+  initial: 50              # 陌生人初始好感度
+  owner_initial: 70        # 主人初始好感度
+  per_message: 0.2         # 每聊一句的微弱加成
+  positive_step: 1.5       # 被夸一次涨多少
+  negative_step: 3         # 被骂一次掉多少（比涨得快）
+  daily_decay: 1           # 一天不聊回落到 50 的速度
+  mood_half_life_hours: 3  # 心情 3 小时衰减一半
+
 reply:
   private_enabled: true
   group_enabled: true

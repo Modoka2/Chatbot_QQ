@@ -22,6 +22,7 @@ from collections import defaultdict, deque
 from datetime import date, datetime
 from typing import Any
 
+from .affinity import AffinityStore
 from .config import AppConfig, LLMConfig
 from .llm import LLMClient, LLMError
 from .memory import ConversationMemory
@@ -59,6 +60,9 @@ _COMMANDS = {
     "search": "search",
     "搜索": "search",
     "搜一下": "search",
+    "好感": "affinity",
+    "关系": "affinity",
+    "affinity": "affinity",
     "id": "id",
     "我是谁": "id",
     "是谁": "id",
@@ -228,6 +232,7 @@ class ChatHandler:
         self.paused = False
         self._started_at = time.time()
         self._replied = 0
+        self.affinity = AffinityStore(config.memory.path, config.affinity)
         self._vision: LLMClient | None = None
         self._stickers: StickerBox | None = None
         self._search_client: SearchClient | None = None
@@ -289,6 +294,8 @@ class ChatHandler:
         if not allowed:
             log.info("限流拦截 %s：%s", msg.user_id, reason)
             return self.guard.notice(reason, msg)
+
+        self._note_affinity(msg, text)
 
         if msg.images:
             if not self.config.vision.enabled:
@@ -385,10 +392,31 @@ class ChatHandler:
             self._identity_line(msg),
             self._time_line(),
             self._gap_line(msg),
+            self._relation_line(msg),
             self._summary_line(msg),
             self._injection_warning(text),
         ]
         return "\n\n".join(p for p in parts if p)
+
+    def _relation_key(self, msg: Message) -> str:
+        return f"{msg.platform}:{msg.user_id}"
+
+    def _relation_line(self, msg: Message) -> str:
+        if not self.config.affinity.enabled:
+            return ""
+        try:
+            return self.affinity.describe(self._relation_key(msg), self._is_owner(msg))
+        except Exception:
+            log.exception("读取好感度失败")
+            return ""
+
+    def _note_affinity(self, msg: Message, text: str) -> None:
+        if not self.config.affinity.enabled:
+            return
+        try:
+            self.affinity.touch(self._relation_key(msg), text, self._is_owner(msg))
+        except Exception:
+            log.exception("更新好感度失败")
 
     def _summary_line(self, msg: Message) -> str:
         try:
@@ -630,6 +658,8 @@ class ChatHandler:
             )
         if command == "search":
             return self._search_answer(msg, rest)
+        if command == "affinity":
+            return self.affinity.report(self._relation_key(msg), self._is_owner(msg))
         if command == "reset":
             removed = self.memory.clear(msg.session_key)
             return f"已清空本会话记忆（{removed} 条），我们重新开始吧。"
@@ -656,6 +686,7 @@ class ChatHandler:
             f"· {prefix}reset 清空上下文",
             f"· {prefix}id 查看自己的 ID（配白名单用）",
             f"· {prefix}搜索 关键词 联网查一下",
+            f"· {prefix}好感 看看咱俩关系状态",
         ]
         if self._is_admin(msg):
             lines.append(f"· {prefix}status 运行状态　{prefix}pause / {prefix}resume 暂停恢复")
